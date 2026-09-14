@@ -1,0 +1,5 @@
+​Questão: explique por que desenfileirar pode custar O(N) em uma chamada isolada e
+ainda assim ser O(1) amortizada (caso médio), argumentando sobre quantas vezes cada elemento é
+transferido entre as duas pilhas ao longo de sua vida na estrutura.
+
+O método desenfileirar pode ter complexidade O(N) em uma chamada isolada no pior caso, pois quando a pilha de saída está completamente vazia, o código precisa transferir todos os N elementos da pilha de entrada para a pilha de saída de uma só vez para inverter a ordem. Apesar disso, a operação é considerada O(1) amortizada porque essa transferência demorada acontece raramente. Se a gente olhar o caminho de qualquer elemento dentro da fila, percebe que ele se move poucas vezes, ele é inserido na pilha de entrada, movido uma única vez para a pilha de saída e depois é retirado. Como cada elemento dá pouco trabalho durante todo o tempo em que fica na fila, o custo pesado de mover os elementos todos de uma vez acaba se dividindo e compensando nas outras vezes em que o código roda rápido. Logo, o custo médio fica constante.
