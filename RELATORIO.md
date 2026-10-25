@@ -57,3 +57,24 @@ O que mais me surpreendeu foi que s.sum() devolveu uma SerieTemporal, e não um 
 ### R7 — Issue #4
 
 O sintoma era uma falha no cálculo do filtro da série temporal. Para garantir a correção, criamos o teste de regressão test_issue_4_soma_acumulada. A causa do problema estava no cálculo da soma acumulada (cumsum), que incluía índices fora da janela configurada. A solução foi reajustar os limites do intervalo no laço de processamento. Os testes de aceitação não detectaram o erro porque usavam apenas dados constantes, o que mascarava a falha. Outro cenário não coberto por eles são séries temporais vazias, caso que validamos no teste test_serie_vazia.
+
+
+
+## Marco 2
+
+### Ambiente
+
+=== Etapa 0: ambiente ===
+Python 3.14.7 | NumPy 2.5.4 | SciPy 1.18.1 | fornecido 4.0 | matrícula 3496
+
+### R8 — Derivada numérica
+
+O menor erro que encontrei foi usando $h = 10^{-5}$ (deu uns $6.22 \times 10^{-10}$). Dá para perceber que se o $h$ for maior que isso, a própria fórmula matemática começa a falhar e o erro sobe. Por outro lado, se o $h$ for muito pequeno (tipo $10^{-14}$), o erro explode e vai para 0.213. Isso acontece porque o computador tem um limite para guardar casas decimais, então quando ele tenta subtrair números minúsculos e muito parecidos, ele se perde e o resultado fica totalmente impreciso.
+
+### R9 — Issue #7
+
+O `AcumuladorIngenuo` é o mais rápido (99 ms), mas o problema dele é que vai perdendo as casas decimais na hora de somar muitos números quebrados. O `AcumuladorInteiro` resolve esse erro transformando tudo em número inteiro para fazer as contas, mas isso deixa o programa bem mais pesado e lento (193 ms). O `AcumuladorKahan` acabou sendo o melhor esquema, ele guarda o resto que sobrou do arredondamento para compensar na próxima soma. Com isso, o resultado fica correto e o tempo continua muito bom(146 ms).
+
+### R10 — Precisão × exatidão
+
+A precisão dos dois métodos, linear e spline, é bem parecida, porque o desvio padrão das medições deu quase na mesma. A grande diferença está na exatidão. A curva linear errou na leitura do PT102 (teve um viés alto de -1.788 kPa), enquanto a spline foi um valor aproximado do valor real (viés de apenas 0.042 kPa). A incerteza final de ambas ficou em ± 1.5 kPa simplesmente porque esse é o erro de fábrica do equipamento. Como o erro do aparelho é grande, ele acaba "engolindo" a variação da conta, então a incerteza total fica igual para os dois.
