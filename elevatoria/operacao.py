@@ -34,36 +34,36 @@ class PontoOperacao:
 
 def ponto_operacao(bomba: CurvaCalibracao, tubulacao: Tubulacao, resolvedor: MetodoRaiz,
                    a: float = 10.0, b: float = 100.0) -> PontoOperacao:
-    """Ponto de operação: a vazão `Q` em `[a, b]` (L/s) em que a bomba e o sistema se igualam.
-
-    A bomba opera onde a altura que ela fornece, `bomba(Q)`, é igual à altura que o sistema
-    exige, `tubulacao.altura_sistema(Q)`. Esta função:
-
-    1. define `f(Q) = bomba(Q) - tubulacao.altura_sistema(Q)`;
-    2. resolve `f(Q) = 0` com `resolvedor.encontrar(f, a, b)`;
-    3. devolve `PontoOperacao(vazao=Q, altura=bomba(Q), resultado=...)`, com `Q` a raiz
-       encontrada e `resultado` o `ResultadoRaiz` devolvido pelo resolvedor.
-
-    Levanta `ValueError` se `a >= b`, se `[a, b]` não estiver dentro do domínio da bomba
-    (`bomba.dominio`) ou se o resolvedor não convergir (`resultado.convergiu` falso). Um
-    `ValueError` do próprio resolvedor (por exemplo, sem troca de sinal na bissecção) não é
-    tratado: ele chega a quem chamou `ponto_operacao`.
-    """
-    raise NotImplementedError("issue #8: ponto_operacao")
+    if a >= b:
+        raise ValueError(f"O intervalo deve ter a < b; recebi [{a}, {b}]")
+    
+    dom_min, dom_max = bomba.dominio
+    if a < dom_min or b > dom_max:
+        raise ValueError(f"Intervalo [{a}, {b}] fora do domínio da bomba [{dom_min}, {dom_max}]")
+        
+    def f(Q: float) -> float:
+        return bomba(Q) - tubulacao.altura_sistema(Q)
+        
+    resultado = resolvedor.encontrar(f, a, b)
+    if not resultado.convergiu:
+        raise ValueError("O resolvedor não convergiu para o ponto de operação.")
+        
+    return PontoOperacao(
+        vazao=resultado.raiz,
+        altura=bomba(resultado.raiz),
+        resultado=resultado
+    )
 
 
 def ordem_convergencia(historico: Sequence[float], raiz: float, piso: float = 1e-14) -> float:
-    """Estimativa da ordem de convergência `p` de uma sequência de aproximações.
-
-    Com os erros `e_k = |x_k - raiz|`, se `e_{k+1} ≈ C·e_k^p`, então
-
-        p ≈ log(e_{k+1} / e_k) / log(e_k / e_{k-1}).
-
-    Use os **três últimos** erros, na ordem do `historico`, que forem maiores que
-    `piso · max(1, |raiz|)`: erros menores estão no nível do arredondamento e não dizem nada
-    sobre o método. Exemplos: erros 1e-1, 1e-2, 1e-4, 1e-8 dão `p = 2` (convergência
-    quadrática); erros 0.5, 0.25, 0.125 dão `p = 1` (convergência linear).
-
-    Levanta `ValueError` se houver menos de 3 erros acima do piso.
-    """
-    raise NotImplementedError("issue #8: ordem_convergencia")
+    limite = piso * max(1.0, abs(raiz))
+    erros = [abs(x - raiz) for x in historico if abs(x - raiz) > limite]
+    
+    if len(erros) < 3:
+        raise ValueError("Menos de 3 erros acima do piso, impossível calcular a ordem.")
+        
+    e_km1 = erros[-3]
+    e_k = erros[-2]
+    e_kp1 = erros[-1]
+    
+    return math.log(e_kp1 / e_k) / math.log(e_k / e_km1)

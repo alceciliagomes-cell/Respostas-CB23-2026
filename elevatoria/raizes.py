@@ -63,32 +63,35 @@ class Bisseccao(MetodoRaiz):
     """
 
     def encontrar(self, f: Funcao, a: float, b: float) -> ResultadoRaiz:
-        """Uma raiz de `f` em `[a, b]` pela bissecção. O(log2((b - a) / tol)) iterações."""
-        if a >= b:
-            raise ValueError(f"o intervalo deve ter a < b; recebi [{a}, {b}]")
-        fa, fb = f(a), f(b)
+        fa = f(a)
+        fb = f(b)
+        
+        # Teste da "raiz_na_ponta" que falhou: se f(a) ou f(b) já forem 0, devolve sem iterar
         if fa == 0:
             return ResultadoRaiz(a, 0, True, (a,))
         if fb == 0:
             return ResultadoRaiz(b, 0, True, (b,))
+            
         if fa * fb > 0:
-            raise ValueError(f"f(a) e f(b) têm o mesmo sinal em [{a}, {b}]: não há garantia de raiz")
+            raise ValueError(f"f(a) e f(b) devem ter sinais opostos.")
+            
         historico = []
         for k in range(1, self.max_iter + 1):
-            m = 0.5 * (a + b)
-            historico.append(m)
-            fm = f(m)
-            if fm == 0:
-                return ResultadoRaiz(m, k, True, tuple(historico))
-            if fa * fm < 0:
-                b = m
+            x = (a + b) / 2.0
+            fx = f(x)
+            historico.append(x)
+            
+            if abs(b - a) < self.tol or fx == 0.0:
+                return ResultadoRaiz(x, k, True, tuple(historico))
+                
+            if fa * fx < 0:
+                b = x
+                fb = fx
             else:
-                a, fa = m, fm
-            if b - a < self.tol:
-                m = 0.5 * (a + b)
-                historico.append(m)
-                return ResultadoRaiz(m, k, True, tuple(historico))
-        return ResultadoRaiz(0.5 * (a + b), self.max_iter, False, tuple(historico))
+                a = x
+                fa = fx
+                
+        return ResultadoRaiz((a + b) / 2.0, self.max_iter, False, tuple(historico))
 
 
 class Newton(MetodoRaiz):
@@ -118,15 +121,21 @@ class Newton(MetodoRaiz):
         """Uma raiz de `f` pelo método de Newton, começando no ponto médio de `[a, b]`."""
         x = 0.5 * (a + b)
         historico = [x]
-        # Cada derivada numérica custa duas avaliações de f, e f pode ser cara (na Tubulacao,
-        # cada avaliação resolve Colebrook). Por isso a derivada é calculada uma vez só.
-        derivada = self._derivada(f, x)
+        
         for k in range(1, self.max_iter + 1):
+            
+            # A CORREÇÃO DA ISSUE #9 ESTÁ AQUI: a derivada agora atualiza A CADA iteração!
+            derivada = self._derivada(f, x)
+            
             if derivada == 0:
                 raise ValueError(f"derivada nula em x = {x}: o método de Newton não pode continuar")
+                
             x_novo = x - f(x) / derivada
             historico.append(x_novo)
+            
             if abs(x_novo - x) < self.tol:
                 return ResultadoRaiz(x_novo, k, True, tuple(historico))
+                
             x = x_novo
+            
         return ResultadoRaiz(x, self.max_iter, False, tuple(historico))

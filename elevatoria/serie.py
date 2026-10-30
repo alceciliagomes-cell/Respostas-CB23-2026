@@ -33,11 +33,13 @@ class SerieTemporal(np.ndarray):
         if janela < 1 or janela > len(self):
             raise ValueError(f"janela deve estar entre 1 e {len(self)}; recebi {janela}")
         acumulada = np.concatenate(([0.0], np.cumsum(self)))
-        return (acumulada[janela:] - acumulada[:-janela]) / janela
+        resultado = (acumulada[janela:] - acumulada[:-janela]) / janela
+        return resultado.view(type(self))
 
     def variacao(self) -> SerieTemporal:
         """Diferenças entre pontos consecutivos (`n - 1` valores)."""
-        return np.diff(self)
+        resultado = np.diff(self)
+        return resultado.view(type(self))
 
     def amplitude(self) -> float:
         """Máximo menos mínimo da série, como `float`."""
@@ -51,7 +53,8 @@ class SerieTemporal(np.ndarray):
         desvio = float(self.std(ddof=1))
         if desvio == 0.0:
             raise ValueError("não é possível normalizar uma série de desvio zero")
-        return (self - self.mean()) / desvio
+        resultado = (self - self.mean()) / desvio
+        return resultado.view(type(self))
 
     def reamostrar(self, k: int) -> SerieTemporal:
         """Médias de blocos consecutivos de `k` pontos: `len(self) // k` valores.
@@ -63,4 +66,5 @@ class SerieTemporal(np.ndarray):
         if k < 1 or k > len(self):
             raise ValueError(f"k deve estar entre 1 e {len(self)}; recebi {k}")
         blocos = len(self) // k
-        return self[: blocos * k].reshape(blocos, k).mean(axis=1)
+        resultado = self[: blocos * k].reshape(blocos, k).mean(axis=1)
+        return resultado.view(type(self))

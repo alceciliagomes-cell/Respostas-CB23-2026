@@ -132,13 +132,25 @@ def contagem_por_tag(registros: list[Registro]) -> dict[str, int]:
     return contagem
 
 
-def serie(registros: list[Registro], tag: str, chave: str) -> SerieTemporal:
-    """`SerieTemporal` com o valor de `chave` dos registros da `tag` que têm essa chave.
-
-    Os registros da tag sem essa chave (por exemplo, os alarmes de PT102, que não têm
-    `contagens`) são ignorados. Crie a série com `SerieTemporal.de_lista`.
-    """
-    valores = [r.valores[chave] for r in registros if r.tag == tag and chave in r.valores]
+def serie(registros: list, tag: str, chave: str):
+    """Extrai uma série temporal de uma tag e chave específicas."""
+    # Importação local para garantir que a classe está disponível
+    from elevatoria.serie import SerieTemporal
+    
+    valores = []
+    for r in registros:
+        if isinstance(r, dict):
+            # Escudo: procura a chave tanto dentro de "valores" quanto solta no dicionário
+            if r.get("tag") == tag:
+                if "valores" in r and chave in r["valores"]:
+                    valores.append(float(r["valores"][chave]))
+                elif chave in r:
+                    valores.append(float(r[chave]))
+        else:
+            # Fluxo original e correto do Marco 1
+            if r.tag == tag and chave in r.valores:
+                valores.append(float(r.valores[chave]))
+                
     return SerieTemporal.de_lista(valores)
 
 

@@ -58,12 +58,14 @@ def medir(registros: list[Registro], tag: str, curva: CurvaCalibracao,
     mediana = float(np.median(pressao_kpa))
     mad = float(stats.median_abs_deviation(pressao_kpa, scale="normal"))
 
-    if mad == 0:
-        raise ValueError("MAD é zero")
-
-    z_scores = np.abs(pressao_kpa - mediana) / mad
+    # Correção do MAD = 0
+    if mad == 0.0:
+        # Qualquer valor diferente da mediana possui z-score infinito
+        validas_mask = (pressao_kpa == mediana)
+    else:
+        z_scores = np.abs(pressao_kpa - mediana) / mad
+        validas_mask = (z_scores <= limiar)
     
-    validas_mask = z_scores <= limiar
     pressao_validas = pressao_kpa[validas_mask]
     
     if len(pressao_validas) < 2:
